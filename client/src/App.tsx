@@ -17,22 +17,48 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('terminal');
   const [fileContent, setFileContent] = useState('');
   const [isAutomating, setIsAutomating] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<{ time: string, msg: string, type: 'info' | 'error' | 'success' }[]>([]);
+
+  const addLog = useCallback((msg: string, type: 'info' | 'error' | 'success' = 'info') => {
+    setDebugLogs(prev => [{ time: new Date().toLocaleTimeString(), msg, type }, ...prev].slice(0, 50));
+  }, []);
 
   useEffect(() => {
-    const newSocket = io(SOCKET_URL);
+    addLog(`Initializing connection to: ${SOCKET_URL}`, 'info');
+    const newSocket = io(SOCKET_URL, {
+      reconnectionAttempts: 5,
+      timeout: 10000,
+    });
     setSocket(newSocket);
+
+    newSocket.on('connect', () => {
+      addLog('Socket connected successfully!', 'success');
+    });
+
+    newSocket.on('connect_error', (err) => {
+      addLog(`Socket connection failed: ${err.message}`, 'error');
+      console.error('Socket connection error:', err);
+    });
 
     newSocket.on('output', (data) => {
       setTerminalOutput((prev) => prev + data);
     });
 
     newSocket.on('ssh-ready', () => {
+      addLog('SSH Bridge established!', 'success');
       setStatus('connected');
       startAutomation(newSocket);
     });
 
     newSocket.on('error', (err) => {
+      addLog(`Backend Error: ${err}`, 'error');
       console.error('Socket error:', err);
+      setStatus('disconnected');
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      addLog(`Socket disconnected: ${reason}`, 'info');
       setStatus('disconnected');
     });
 
@@ -135,6 +161,13 @@ function App() {
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', padding: '0.5rem' }}
+              title="Toggle Diagnostics"
+            >
+              <Activity size={18} color={showDebug ? 'var(--accent-color)' : 'white'} />
+            </button>
             <span className={`status-badge status-${status}`}>
               <Activity size={14} /> {status.toUpperCase()}
             </span>
@@ -143,6 +176,32 @@ function App() {
             )}
           </div>
         </header>
+
+        <AnimatePresence>
+          {showDebug && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="card"
+              style={{ marginBottom: '2rem', border: '1px solid var(--accent-color)', background: 'rgba(0,102,255,0.05)' }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Diagnostic Console</h3>
+                <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>Configured URL: {SOCKET_URL}</span>
+              </div>
+              <div style={{ maxHeight: '200px', overflowY: 'auto', fontSize: '0.875rem', fontFamily: 'monospace' }}>
+                {debugLogs.length === 0 && <p style={{ opacity: 0.5 }}>Waiting for logs...</p>}
+                {debugLogs.map((log, i) => (
+                  <div key={i} style={{ marginBottom: '0.25rem', color: log.type === 'error' ? '#ff4444' : log.type === 'success' ? '#22c55e' : 'inherit' }}>
+                    <span style={{ opacity: 0.5, marginRight: '0.5rem' }}>[{log.time}]</span>
+                    {log.msg}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence mode="wait">
           {viewMode === 'terminal' ? (
