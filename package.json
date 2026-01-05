@@ -6,7 +6,7 @@
         "server"
     ],
     "scripts": {
-        "build": "npm run build --workspace=client",
+        "build": "npm run build --workspace=client && mv client/dist ./dist",
         "build:client": "npm run build --workspace=client",
         "install:all": "npm install && npm install --workspace=client && npm install --workspace=server"
     }
