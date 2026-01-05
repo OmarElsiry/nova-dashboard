@@ -14,7 +14,7 @@ app.use(express.json());
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:5173", // Vite default
+        origin: process.env.CLIENT_URL || "http://localhost:5173", // Dynamic client origin
         methods: ["GET", "POST"]
     }
 });

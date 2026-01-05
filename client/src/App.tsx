@@ -5,7 +5,7 @@ import { EditorView } from './components/EditorView';
 import { Layout, Terminal as TermIcon, FileCode, Shield, Activity, Power } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const SOCKET_URL = 'http://localhost:3001';
+const SOCKET_URL = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:3001';
 
 type ViewMode = 'terminal' | 'gui';
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
@@ -69,7 +69,7 @@ function App() {
 
     // Fetch real file content from API
     try {
-      const resp = await fetch('http://localhost:3001/api/file-content');
+      const resp = await fetch(`${SOCKET_URL}/api/file-content`);
       const data = await resp.json();
       if (data.content) {
         setFileContent(data.content);
@@ -84,7 +84,7 @@ function App() {
   const saveFile = async () => {
     setIsAutomating(true);
     try {
-      const resp = await fetch('http://localhost:3001/api/save-file', {
+      const resp = await fetch(`${SOCKET_URL}/api/save-file`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: fileContent })
