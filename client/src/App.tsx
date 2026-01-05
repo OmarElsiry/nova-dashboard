@@ -214,6 +214,13 @@ function App() {
               style={{ height: '500px' }}
             >
               <div className="terminal-wrapper">
+                <div style={{ position: 'absolute', top: '1rem', right: '1rem', zIndex: 10, display: 'flex', gap: '0.5rem' }}>
+                  {status === 'connected' && (
+                    <span style={{ fontSize: '0.75rem', background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '2px 8px', borderRadius: '4px', border: '1px solid #22c55e' }}>
+                      ● REAL-TIME TTY
+                    </span>
+                  )}
+                </div>
                 <Terminal
                   output={terminalOutput}
                   onData={(data) => socket?.emit('data', data)}
